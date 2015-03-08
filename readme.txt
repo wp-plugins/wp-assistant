@@ -3,7 +3,7 @@ Contributors: ishihara takashi
 Tags: Option Framework
 Requires at least: 4.1.1
 Tested up to: 4.0
-Stable tag: 0.1.5
+Stable tag: 0.1.6
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -22,6 +22,13 @@ This plugin functionality itself is not much, minimum required features are stuf
 **Features:**
 
 * Basic settings
+  * Disable xml-rpc.
+  * Disable author page.
+  * Disable wp generator tag.
+  * Enhance feed links.
+  * Enhance short link.
+  * Disable wpautop.
+
 
 * Original Dashboard Widget
 
