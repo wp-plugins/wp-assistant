@@ -904,6 +904,7 @@ button.ui-button::-moz-focus-inner {
   position: relative; /* position: relative prevents IE scroll bug (element with position: relative inside container with overflow: auto appear as "fixed") */
   padding: .2em;
   background: transparent;
+
 }
 
 .ui-tabs .ui-tabs-nav {
@@ -1228,9 +1229,11 @@ body .ui-tooltip {
 }
 
 .ui-tabs-vertical .ui-tabs-panel {
-  padding: 1em;
+  padding: 0.4em 1em 0em;
   float: right;
   width: 82%;
+	box-shadow: -2px 0px 4px rgba(0,0,0,0.05);
+	margin-top: 3px;
 }
 
 @media screen and ( max-width: 640px){
@@ -1244,4 +1247,19 @@ body .ui-tooltip {
     width: 100%;
   }
 
+}
+.ui-tabs-nav {
+  .ui-state-active{
+	position: relative;
+	&:before{
+	  content: '';
+	  display: inline-block;
+	  width: 4px;
+	  height: 100%;
+	  background: #0073AA;
+	  position: absolute;
+	  left: 0;
+	  top: 0;
+	}
+  }
 }
