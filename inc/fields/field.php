@@ -4,13 +4,17 @@
  * 各フィールドの根幹クラス
  */
 
-namespace WP_Assistant\inc\fields\field;
+namespace WP_Assistant\inc\fields;
+
+use WP_Assistant\inc\helper;
+use WP_Assistant\inc\config;
 
 abstract class field{
 
 	public $type;
 
 	public $settings;
+	public $value;
 
 	/**
 	 * 初期化
@@ -18,14 +22,18 @@ abstract class field{
 	public function init(){}
 
 	/**
-	 * デフォルトの値を指定
-	 */
-	public function defaults_settings(){}
-
-	/**
 	 * 出力する
 	 */
-	public function output(){}
+	abstract public function render();
 
+	public function set() {
+		$this->value = config::get_option( $this->field['id'] );
+		if ( isset( $this->field['options'] ) ) {
+			$this->options = $this->field['options'];
+		}
+	}
 
+	public function get( $attr ){
+		return $this->field[ $attr ];
+	}
 }
