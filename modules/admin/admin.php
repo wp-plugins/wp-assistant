@@ -8,25 +8,24 @@ Domain Path: ../../languages/
 
 namespace WP_Assistant\modules\admin;
 
-use \WP_Assistant\modules\module;
-use \WP_Assistant\modules\adminPostNav\adminPostNav;
-use \WP_Assistant\inc\config;
-use \WP_Assistant\inc\helper;
+use WP_Assistant\inc\config;
+use WP_Assistant\modules\adminPostNav\adminPostNav;
+use WP_Assistant\modules\module;
 
 class admin extends module {
 
 	/**
 	 * 初期化
 	 */
-	public function __construct( $parent ){
+	public function __construct() {
 
-		$this->parent = $parent;
+		$this->settings = parent::get_settings();
 
-		add_action( 'admin_init',       array( $this, 'add_settings' ), 10 );
+		add_action( 'admin_init', array( $this, 'add_settings' ), 10 );
 
-		add_action( 'load_template',    array( $this, 'log_template_load' ), 10, 1 );
+		add_action( 'load_template', array( $this, 'log_template_load' ), 10, 1 );
 		add_action( 'template_include', array( $this, 'log_template_load' ), 10, 1 );
-		add_action( 'locate_template',  array( $this, 'log_template_load' ), 10, 1 );
+		add_action( 'locate_template', array( $this, 'log_template_load' ), 10, 1 );
 
 		if ( ! get_option( config::get( 'prefix' ) . 'install' ) ) {
 			$options = get_option( config::get( 'prefix' ) . 'options' );
@@ -34,14 +33,18 @@ class admin extends module {
 			$options = config::get( 'options' );
 		}
 
-		if ( is_array( $options ) ) {
-			foreach ( $options as $option_key => $option ) {
-				/** メソッドが存在する場合に発動 */
-				if ( method_exists( $this, $option_key ) ) {
-					$this->{$option_key}( $option );
+		$self = $this;
+		add_action( 'init', function() use( $self, $options ){
+			if ( is_array( $options ) ) {
+				foreach ( $options as $option_key => $option ) {
+					/** メソッドが存在する場合に発動 */
+					if ( method_exists( $self, $option_key ) ) {
+						$self->{$option_key}( $option );
+					}
 				}
 			}
-		}
+		}, 10, 1);
+
 
 		// load_template にフィルターを追加
 		$this->check_was_upgraded();
@@ -52,155 +55,188 @@ class admin extends module {
 	 * @return void
 	 */
 	public function add_settings() {
-
 		/**
 		 * 1. サイト設定
 		 */
-		$this->parent->settings->add_section(
-			'general', '', __( 'General', 'wp-assistant' )
+		$this->settings->add_section(
+			array(
+				'id'    => 'general',
+				'title' => __( 'General', 'wp-assistant' ),
+				'tabs_name' => __( 'General', 'wp-assistant' ),
+			)
 		)->add_field(
-			'feed_links',
-			__( 'Feed link tags (rss)', 'wp-assistant' ),
-			function () {
-				$args = array(
-					'id'      => 'feed_links',
-					'default' => 0,
-					'desc'    => __( 'Please set the on or off of the feed links that are output to wp_head.', 'wp-assistant' ),
-				);
-				helper::radiobox( $args );
-			},
-			'general',
-			0
+			array(
+				'id'                => 'show_current_template',
+				'title'             => __( 'Show in the admin bar the current template name', 'wp-assistant' ),
+				'type'              => 'radiobox',
+				'section'           => 'general',
+				'default'           => 'false',
+				'desc'              => __( 'To view the template name in the management bar, please to ON', 'wp-assistant' ),
+				'size'              => '',
+				'options'           => array(
+					'1'  => __( 'On', 'wp-assistant' ),
+					'0' => __( 'Off', 'wp-assistant' ),
+				),
+				'sanitize_callback' => '',
+			)
 		)->add_field(
-			'wp_generator',
-			__( 'WordPress generator meta tag', 'wp-assistant' ),
-			function () {
-				$args = array(
-					'id'      => 'wp_generator',
-					'default' => 0,
-					'desc'    => __( 'The output the WordPress version information to wp_head.', 'wp-assistant' ),
-				);
-				helper::radiobox( $args );
-			},
-			'general',
-			0
+			array(
+				'id'      => 'feed_links',
+				'title'   => __( 'Feed link tags (rss)', 'wp-assistant' ),
+				'desc'    => __( 'Please set the on or off of the feed links that are output to wp_head.', 'wp-assistant' ),
+				'section' => 'general',
+				'type'    => 'radiobox',
+				'default' => 'false',
+				'options' => array(
+					'1'  => __( 'On', 'wp-assistant' ),
+					'0' => __( 'Off', 'wp-assistant' ),
+				),
+			)
+		)
+		->add_field(
+			array(
+				'id'      => 'favicon',
+				'title'   => __( 'Site Favicon', 'wp-assistant' ),
+				'type'    => 'media',
+				'default' => '',
+				'section' => 'general',
+				'desc'    => __( '<p>Please upload the favicon.</p>', 'wp-assistant' )
+			)
 		)->add_field(
-			'wp_shortlink_wp_head',
-			__( 'The output of the short link', 'wp-assistant' ),
-			function () {
-				$args = array(
-					'id'      => 'wp_shortlink_wp_head',
-					'default' => 0,
-					'desc'    => __( 'The output a short link to wp_head.', 'wp-assistant' ),
-				);
-				helper::radiobox( $args );
-			},
-			'general',
-			0
+			array(
+				'id'                => 'wp_generator',
+				'title'             => __( 'WordPress generator meta tag', 'wp-assistant' ),
+				'type'              => 'radiobox',
+				'section'           => 'general',
+				'default'           => 'false',
+				'desc'              => __( 'The output the WordPress version information to wp_head.', 'wp-assistant' ),
+				'size'              => '',
+				'options'           => array(
+					'1'  => __( 'On', 'wp-assistant' ),
+					'0' => __( 'Off', 'wp-assistant' ),
+				),
+				'sanitize_callback' => '',
+			)
 		)->add_field(
-			'wpautop',
-			__( 'Stop of automatic formatting', 'wp-assistant' ),
-			function () {
-				$args = array(
-					'id'      => 'wpautop',
-					'default' => 0,
-					'desc'    => __( 'Please select whether to stop the automatic formatting.', 'wp-assistant' ),
-				);
-				helper::radiobox( $args );
-			},
-			'general',
-			1
+			array(
+				'id'                => 'wp_shortlink_wp_head',
+				'title'             => __( 'The output of the short link', 'wp-assistant' ),
+				'type'              => 'radiobox',
+				'section'           => 'general',
+				'default'           => 'false',
+				'desc'              => __( 'The output a short link to wp_head.', 'wp-assistant' ),
+				'size'              => '',
+				'options'           => array(
+					'1'  => __( 'On', 'wp-assistant' ),
+					'0' => __( 'Off', 'wp-assistant' ),
+				),
+				'sanitize_callback' => '',
+			)
 		)->add_field(
-			'revision',
-			__( 'Stop of revision control', 'wp-assistant' ),
-			function () {
-				$args = array(
-					'id'      => 'revision',
-					'default' => 0,
-					'desc'    => __( 'You can choose to disable the revision control. * I only want to hide. The database will be accumulated.', 'wp-assistant' ),
-				);
-				helper::radiobox( $args );
-			},
-			'general',
-			1
+			array(
+				'id'                => 'wpautop',
+				'title'             => __( 'Stop of automatic formatting', 'wp-assistant' ),
+				'type'              => 'radiobox',
+				'section'           => 'general',
+				'default'           => 'false',
+				'desc'              => __( 'Please select whether to stop the automatic formatting.', 'wp-assistant' ),
+				'size'              => '',
+				'options'           => array(
+					'1'  => __( 'On', 'wp-assistant' ),
+					'0' => __( 'Off', 'wp-assistant' ),
+				),
+				'sanitize_callback' => '',
+			)
 		)->add_field(
-			'jquery',
-			__( 'Load of the jQuery', 'wp-assistant' ),
-			function () {
-				$args = array(
-					'id'      => 'jquery',
-					'default' => 0,
-					'desc'    => __( 'Please specify whether load the jQuery library of cdnjs.', 'wp-assistant' ),
-				);
-				helper::radiobox( $args );
-			},
-			'general',
-			0
+			array(
+				'id'                => 'revision',
+				'title'             => __( 'Stop of revision control', 'wp-assistant' ),
+				'type'              => 'radiobox',
+				'section'           => 'general',
+				'default'           => 'false',
+				'desc'              => __( 'You can choose to disable the revision control. * I only want to hide. The database will be accumulated.', 'wp-assistant' ),
+				'size'              => '',
+				'options'           => array(
+					'1'  => __( 'On', 'wp-assistant' ),
+					'0' => __( 'Off', 'wp-assistant' ),
+				),
+				'sanitize_callback' => '',
+			)
 		)->add_field(
-			'bootstrap',
-			__( 'Load of The Bootstrap3 framework', 'wp-assistant' ),
-			function () {
-				$args = array(
-					'id'      => 'bootstrap',
-					'default' => 0,
-					'desc'    => __( 'Please specify whether to load the Bootstrap framework', 'wp-assistant' ),
-				);
-				helper::radiobox( $args );
-			},
-			'general',
-			0
+			array(
+				'id'                => 'jquery',
+				'title'             => __( 'Load of the jQuery', 'wp-assistant' ),
+				'type'              => 'radiobox',
+				'section'           => 'general',
+				'default'           => 'false',
+				'desc'              => __( 'Please specify whether load the jQuery library of cdnjs.', 'wp-assistant' ),
+				'size'              => '',
+				'options'           => array(
+					'1'  => __( 'On', 'wp-assistant' ),
+					'0' => __( 'Off', 'wp-assistant' ),
+				),
+				'sanitize_callback' => '',
+			)
 		)->add_field(
-			'xmlrpc',
-			__( 'Stop of xmlrpc', 'wp-assistant' ),
-			function () {
-				$args = array(
-					'id'      => 'xmlrpc',
-					'default' => 0,
-					'desc'    => __( 'Please specify whether to disable the xmlrpc as a security measure.', 'wp-assistant' ),
-				);
-				helper::radiobox( $args );
-			},
-			'general',
-			1
+			array(
+				'id'                => 'bootstrap',
+				'title'             => __( 'Load of The Bootstrap3 framework', 'wp-assistant' ),
+				'type'              => 'radiobox',
+				'section'           => 'general',
+				'default'           => 'false',
+				'desc'              => __( 'Please specify whether to load the Bootstrap framework', 'wp-assistant' ),
+				'size'              => '',
+				'options'           => array(
+					'1'  => __( 'On', 'wp-assistant' ),
+					'0' => __( 'Off', 'wp-assistant' ),
+				),
+				'sanitize_callback' => '',
+			)
 		)->add_field(
-			'author_archive',
-			__( 'Disable the author page', 'wp-assistant' ),
-			function () {
-				$args = array(
-					'id'      => 'author_archive',
-					'default' => 0,
-					'desc'    => __( 'Please specify whether to disable the author archive as a security measure.', 'wp-assistant' ),
-				);
-				helper::radiobox( $args );
-			},
-			'general',
-			1
+			array(
+				'id'                => 'xmlrpc',
+				'title'             => __( 'Stop of xmlrpc', 'wp-assistant' ),
+				'type'              => 'radiobox',
+				'section'           => 'general',
+				'default'           => 'false',
+				'desc'              => __( 'Please specify whether to disable the xmlrpc as a security measure.', 'wp-assistant' ),
+				'size'              => '',
+				'options'           => array(
+					'1'  => __( 'On', 'wp-assistant' ),
+					'0' => __( 'Off', 'wp-assistant' ),
+				),
+				'sanitize_callback' => '',
+			)
 		)->add_field(
-			'show_current_template',
-			__( 'Show in the admin bar the current template name', 'wp-assistant' ),
-			function () {
-				$args = array(
-					'id'      => 'show_current_template',
-					'default' => 1,
-					'desc'    => __( 'To view the template name in the management bar, please to ON', 'wp-assistant' ),
-				);
-				helper::radiobox( $args );
-			},
-			'general',
-			1
+			array(
+				'id'                => 'author_archive',
+				'title'             => __( 'Disable the author page', 'wp-assistant' ),
+				'type'              => 'radiobox',
+				'section'           => 'general',
+				'default'           => 'false',
+				'desc'              => __( 'Please specify whether to disable the author archive as a security measure.', 'wp-assistant' ),
+				'size'              => '',
+				'options'           => array(
+					'1'  => __( 'On', 'wp-assistant' ),
+					'0' => __( 'Off', 'wp-assistant' ),
+				),
+				'sanitize_callback' => '',
+			)
 		)->add_field(
-			'admin_page_nav',
-			__( 'Enabling Admin post Navigation', 'wp-assistant' ),
-			function () {
-				$args = array(
-					'id'      => 'admin_page_nav',
-					'default' => 1,
-					'desc'    => __( 'In an article edit screen of the management screen, enabling the next post, the previous post link.', 'wp-assistant' ),
-				);
-				helper::radiobox( $args );
-			},
-			'general',
-			1
+			array(
+				'id'                => 'admin_page_nav',
+				'title'             => __( 'Enabling Admin post Navigation', 'wp-assistant' ),
+				'type'              => 'radiobox',
+				'section'           => 'general',
+				'default'           => 'false',
+				'desc'              => __( 'In an article edit screen of the management screen, enabling the next post, the previous post link.', 'wp-assistant' ),
+				'size'              => '',
+				'options'           => array(
+					'1'  => __( 'On', 'wp-assistant' ),
+					'0' => __( 'Off', 'wp-assistant' ),
+				),
+				'sanitize_callback' => '',
+			)
 		);
 	}
 
@@ -248,6 +284,10 @@ class admin extends module {
 			remove_action( 'wp_head', 'feed_links', 2 );
 			remove_action( 'wp_head', 'feed_links_extra', 3 );
 			remove_action( 'wp_head', 'rsd_link' );
+		} else {
+			add_action( 'wp_head', 'feed_links', 2 );
+			add_action( 'wp_head', 'feed_links_extra', 3 );
+			add_action( 'wp_head', 'rsd_link' );
 		}
 	}
 
@@ -255,19 +295,24 @@ class admin extends module {
 	 * WordPressバージョン情報の出力
 	 *
 	 * @param $option
+	 *
+	 * @return bool
 	 */
 	public function wp_generator( $option ) {
+
 		if ( ! intval( $option ) ) {
 			remove_action( 'wp_head', 'wp_generator' );
-
-			return false;
+		} else {
+			add_action( 'wp_head', 'wp_generator' );
 		}
+
 	}
 
 	/**
 	 * ショートリンクの出力
 	 *
 	 * @param $option
+	 *
 	 * @return bool
 	 */
 	public function wp_shortlink_wp_head( $option ) {
@@ -282,6 +327,7 @@ class admin extends module {
 	 * 自動整形の停止
 	 *
 	 * @param $option
+	 *
 	 * @return bool
 	 */
 	public function wpautop( $option ) {
@@ -321,14 +367,8 @@ class admin extends module {
 		if ( ! intval( $option ) ) {
 			// リビジョンの停止
 			if ( ! defined( 'WP_POST_REVISIONS' ) ) {
-				define( 'WP_POST_REVISIONS', false );
+				define( 'WP_POST_REVISIONS', 0 );
 			}
-			// 自動保存の停止
-			add_action( 'wp_print_scripts', function () {
-				wp_deregister_script( 'autosave' );
-			} );
-
-			return false;
 		}
 	}
 
@@ -336,6 +376,7 @@ class admin extends module {
 	 * jQueryの読み込み
 	 *
 	 * @param $option
+	 *
 	 * @return bool
 	 */
 	public function jquery( $option ) {
@@ -410,9 +451,9 @@ class admin extends module {
 
 					if ( $author_can === true || ! is_404() || is_404() ) {
 
-						if ( $url == '' ) {
-							$url = home_url();
-						}
+//						if ( $url == '' ) {
+						$url = home_url();
+//						}
 						wp_redirect( $url, "302" );
 						exit;
 					}
@@ -477,11 +518,14 @@ class admin extends module {
 
 	/**
 	 * 現在のテンプレートを表示
+	 *
 	 * @param $option
 	 */
 	public function show_current_template( $option ) {
+
 		if ( intval( $option )
-		     && ! is_admin() ) {
+		     && ! is_admin()
+		) {
 			add_action( 'admin_bar_menu', array( $this, 'admin_bar_template' ), 9999 );
 		}
 	}
@@ -496,7 +540,6 @@ class admin extends module {
 	 */
 	public function admin_bar_template( $wp_admin_bar ) {
 		global $template;
-
 		$wp_admin_bar->add_menu(
 			array(
 				'id'    => 'admin_bar_template',
@@ -535,6 +578,7 @@ class admin extends module {
 			}
 			$i ++;
 		}
+
 
 	}
 
